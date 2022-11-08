@@ -1,5 +1,33 @@
 {% extends "network/layout.html" %}
 
 {% block body %}
-    TODO
+
+    <div id="compose-view">
+        <h3>New Post</h3>
+        <span id='mymessages'></span>
+        <form id="compose-form">
+            <div class="form-group">
+                From: <input disabled class="form-control" value="{{ request.user.email }}">
+            </div>
+            <textarea class="form-control" id="compose-body" placeholder="Body"></textarea>
+            <button id="post_tweet" type="button" class="btn btn-primary">Post Tweet</button>
+        </form>
+    </div>
+
+    <div id="profile-view">
+        <h3 id="folder_title"></h3>
+        <div id="folder_content"></div>
+    </div>
+
+
+    <div id="tweets-view">
+        <h3 id="folder_title"></h3>
+        <div id="folder_content"></div>
+    </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script src="{% static 'network/page.js' %}"></script>
 {% endblock %}

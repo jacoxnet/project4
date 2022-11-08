@@ -5,22 +5,32 @@ from django.db import models
 class User(AbstractUser):
     pass
 
-class Email(models.Model):
-    user = models.ForeignKey("User", on_delete=models.CASCADE, related_name="emails")
-    subject = models.CharField(max_length=255)
-    body = models.TextField(blank=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    read = models.BooleanField(default=False)
-    archived = models.BooleanField(default=False)
+class Profile(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    following = models.ManyToManyField("User", related_name="userfollowing")
 
     def serialize(self):
         return {
             "id": self.id,
-            "sender": self.sender.email,
-            "recipients": [user.email for user in self.recipients.all()],
-            "subject": self.subject,
+            "user": self.user.username,
+            "following": [user.username for user in self.following.all()]
+        }
+
+    def __str__(self):
+        return str(self.serialize())
+
+class Tweet(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    body = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    likes = models.ManyToManyField("User", related_name="userlikes")
+
+    def serialize(self):
+        return {
+            "id": self.id,
             "body": self.body,
             "timestamp": self.timestamp.strftime("%b %d %Y, %I:%M %p"),
-            "read": self.read,
-            "archived": self.archived
+            "likes": [user.username for user in self.likes.all()]
         }
+    def __str__(self):
+        return str(self.serialize())
