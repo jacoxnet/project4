@@ -24,6 +24,7 @@ class Tweet(models.Model):
     body = models.TextField(blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField("User", related_name="userlikes")
+    likecount = models.IntegerField(default=0)
 
     def serialize(self):
         return {

@@ -1,81 +1,70 @@
 document.addEventListener('DOMContentLoaded', function() {
 
   // By default, load all posts
-  load_mailbox('All Posts');
+  load_posts('all_posts');
 });
 
 //
-// compose - set up and clear fields for post input
+// compose - set up post input field
 //      sent button calls sendpost
 //      if argument, it's the old post to edit
 //
-async function compose_post(oldpost=null) {
-    console.log(`entering compose post with oldpostid = ${oldpostid}`);
-        // blank out fields
+async function compose_post(oldpostid=null) {
+    if (oldpostid) {
+        document.querySelector('#mymessages').textContent = 'Editing';
+        let response = await fetch('/posts/' + oldpostid);
+        let data = await response.json();
+        document.querySelector('#compose-body').value = data.body;
+    } else {
         document.querySelector('#mymessages').textContent = 'Composing'
         document.querySelector('#compose-body').value = '';
-        
     }
 }
 
+
 // 
-// load and display a mailbox list
+// load and list of posts
 //
-async function load_mailbox(mailbox) {
+async function load_posts(list_of_posts) {
 
-    // Show the mailbox and hide other views
-    document.querySelector('#oneemail-view').style.display = 'none';
-    document.querySelector('#emails-view').style.display = 'block';
-    document.querySelector('#compose-view').style.display = 'none';
-
-    // Show the mailbox name
+    // get DOM places to display this content
     const folder_title = document.querySelector('#folder_title');
     const folder_content = document.querySelector('#folder_content');
     
     // Set folder title and clear content
-    folder_title.innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+    folder_title.innerHTML = list_of_posts;
     folder_content.innerHTML = '';
 
     // get and display email results
-    response = await fetch(`/emails/${mailbox}`)
+    response = await fetch('/posts/' + list_of_posts);
     if (response.status >= 200 && response.status <= 299) {
-        let emails = await response.json();
-        if (emails.length > 0) {
-            // create table structure
-            let tbody = document.createElement('tbody');
-            let table = document.createElement('table');
-            table.setAttribute('class', 'table');
-            emails.forEach(email => {    
+        let posts = await response.json();
+        if (posts.length > 0) {
+            posts.forEach(post => {
+                let card = document.createElement('div');
+                card.setAttribute('class', 'card');
+                let card_header = document.createElement('div');
+                card_header.setAttribute('class', 'card-body');
+                let card_body = document.createElement('div');
+                card_body.setAttribute('class', 'card-body');
+                let card_title = document.createElement('div');
+                card_title.setAttribute('class', 'card-title');
+                let card_text = document.createElement('div');
+                card_text.setAttribute('class', 'card-text');
+                let card_footer = document.createElement('div');
+                card_footer.setAttribute('class', 'card-footer');
                 // extract display elements for each email
-                let recipients = document.createElement('td');
-                recipients.textContent = email.recipients;
-                let sender = document.createElement('td');
-                sender.textContent = email.sender;
-                let timestamp = document.createElement('td');
-                timestamp.textContent = email.timestamp;
-                let subject = document.createElement('td')
-                subject.textContent = email.subject;
-                // create row and append display elements
-                let erow = document.createElement('tr');
-                if (!email.read) {
-                    erow.setAttribute('data-unread', true);
-                }
-                erow.setAttribute('onclick', `gotoemail("${mailbox}", ${email.id})`);
-                // display sender for inbox and archive, but recipients for sent
-                if (mailbox == "sent") {
-                    erow.appendChild(recipients);
-                } else {
-                    erow.appendChild(sender);
-                }
-                erow.appendChild(subject);
-                erow.appendChild(timestamp);
-                tbody.appendChild(erow);
+                card_header.textContent = '@' + post.sender;
+                card_text.textContent = post.body;
+                card_footer.textContent = post.timestamp + ' ' + post.likecount + ' Likes';
+                card.appendChild(card_header);
+                card.appendChild(card_body);
+                card.appendChild(card_footer);
+                folder_content.appendChild(card)
             });
-            table.appendChild(tbody);
-            folder_content.appendChild(table);
         } else {
-            // if no emails were retrieved but not an error
-            folder_content.innerHTML = '<i>No emails to display</i>';
+            // if no posts were retrieved but not an error
+            folder_content.innerHTML = '<i>No posts to display</i>';
         }
     }
     else {
