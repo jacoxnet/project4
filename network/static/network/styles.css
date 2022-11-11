@@ -1,0 +1,13 @@
+.card {
+    border: 3px solid blue;
+    margin: 1px;
+}
+
+#post_tweet {
+    margin-top:5px;
+}
+
+#rj {
+    text-align:right;
+}
+

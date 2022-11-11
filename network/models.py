@@ -7,31 +7,33 @@ class User(AbstractUser):
 
 class Profile(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
-    following = models.ManyToManyField("User", related_name="userfollowing")
+    follows = models.ManyToManyField("User", related_name="isfollowedby")
 
     def serialize(self):
         return {
             "id": self.id,
             "user": self.user.username,
-            "following": [user.username for user in self.following.all()]
+            "follows": [user.username for user in self.following.all()]
         }
 
     def __str__(self):
         return str(self.serialize())
 
 class Tweet(models.Model):
-    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    sender = models.ForeignKey("User", on_delete=models.CASCADE)
     body = models.TextField(blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
-    likes = models.ManyToManyField("User", related_name="userlikes")
+    likes = models.ManyToManyField("User", related_name="userlikes", blank=True)
     likecount = models.IntegerField(default=0)
 
     def serialize(self):
         return {
             "id": self.id,
+            "sender": self.sender.username,
             "body": self.body,
             "timestamp": self.timestamp.strftime("%b %d %Y, %I:%M %p"),
-            "likes": [user.username for user in self.likes.all()]
+            "likes": [user.username for user in self.likes.all()],
+            "likecount": self.likecount
         }
     def __str__(self):
         return str(self.serialize())
