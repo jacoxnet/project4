@@ -7,13 +7,16 @@ class User(AbstractUser):
 
 class Profile(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
-    follows = models.ManyToManyField("User", related_name="isfollowedby")
+    description = models.TextField(blank=True)
+    follows = models.ManyToManyField("User", related_name="isfollowedby", blank=True)
 
     def serialize(self):
         return {
             "id": self.id,
             "user": self.user.username,
-            "follows": [user.username for user in self.following.all()]
+            "description": self.description,
+            "follows": [user.username for user in self.follows.all()],
+            "isfollowedby": [profile.user.username for profile in self.user.isfollowedby.all()]
         }
 
     def __str__(self):

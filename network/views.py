@@ -68,19 +68,22 @@ def addtweet(request):
 #   display a user's profile
 #
 def displayprofile(request, username):
+    print('request for profile for ', username)
     # query for requested user
     try:
         theuser = User.objects.get(username=username)
     except User.DoesNotExist:
         return JsonResponse({"error": "User not found"}, status=404)
-    theprofile = Profile.objects.get(user=theuser)
-    return JsonResponse({
-        "user": theuser,
-        "follows": len(theprofile.follows),
-        "isfollowedby": len(theuser.isfollowedby)
-    })
-
-
+    # query for user's profile - create if necessary
+    try: 
+        theprofile = Profile.objects.get(user=theuser)
+    except Profile.DoesNotExist:
+        # create new profile
+        theprofile = Profile(user=theuser, description="This is the profile for " + "@" + theuser.username)
+        theprofile.save()
+    return JsonResponse(
+        theprofile.serialize(), status=201
+    )
     
 
 

@@ -4,10 +4,21 @@
 }
 
 #post_tweet {
-    margin-top:5px;
+    margin: 5px;
 }
 
 #rj {
     text-align:right;
 }
 
+#profile-view {
+    text-align: center;
+    border: 2px solid black;
+    background-color: rgb(84, 177, 243);
+    margin:2 px;
+}
+
+.card-header {
+    cursor:pointer;
+    color: blue;
+}
