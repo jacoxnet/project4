@@ -1,4 +1,6 @@
 import json
+from functools import reduce
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
@@ -19,27 +21,43 @@ from network.models import User, Profile, Tweet
 def index(request):
     return render(request, "network/index.html")
 
-
 #
-# route listtweets/listname
+# route listtweets/tweetlist
 #      get list of tweets and return 
 #      them 
-#       "alltweets"
-#       "mytweets"
-#       "followingtweets"
+#       "alltweets" 
+#       "myfollows" (logged in user's follows)
+#       <username> (tweets of that username)
 #
 def listtweets(request, tweetlist):
-    if not request.user.is_authenticated:
+    if tweetlist == "alltweets":
         tweets = Tweet.objects.all()
-    else:
-        if tweetlist == "alltweets":
-            tweets = Tweet.objects.all()
-        elif tweetlist == "mytweets":
-            tweets = Tweet.objects.filter(sender=request.user)
-        elif tweetlist == "followingtweets":
-            tweets = Tweet.objects.filter(userfollowing=request.user)
+    elif tweetlist == "myfollows":
+        # cannot show follows if not logged in
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "User not found"}, status=404)
+        theuser = request.user
+        # get that user's profile
+        theprofile = Profile.objects.get(user=theuser)
+        # get queryset with the user's follows
+        thefollows = theprofile.follows.all()
+        # get an iterable with each users tweets
+        theiterable = list(map(lambda a:Tweet.objects.filter(sender=a), thefollows))
+        if len(theiterable) > 0:
+            # union all these tweets together
+            tweets = reduce(lambda a, b: a|b, theiterable)
         else:
-            return JsonResponse({"error": "Invalid tweetlist"}, status=400)
+            # create empty queryset
+            tweets = Tweet.objects.filter(sender=None);
+    else:
+        # treat tweetlist as a username
+        # look up user from username
+        try:
+            theuser = User.objects.get(username=tweetlist)
+        except User.DoesNotExist:
+            return JsonResponse({"error": "User not found"}, status=404)
+        # get the user's tweets
+        tweets = Tweet.objects.filter(sender=theuser)
     # order tweets in reverse chron order
     tweets = tweets.order_by("-timestamp").all()
     return JsonResponse([tweet.serialize() for tweet in tweets], safe=False)
@@ -69,11 +87,15 @@ def addtweet(request):
 #
 def displayprofile(request, username):
     print('request for profile for ', username)
-    # query for requested user
-    try:
-        theuser = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return JsonResponse({"error": "User not found"}, status=404)
+    # get current logged in user if special username
+    if username == "current_user":
+        theuser = request.user
+    else:
+        # query for requested user
+        try:
+            theuser = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return JsonResponse({"error": "User not found"}, status=404)
     # query for user's profile - create if necessary
     try: 
         theprofile = Profile.objects.get(user=theuser)
@@ -123,6 +145,12 @@ def register(request):
         if password != confirmation:
             return render(request, "network/register.html", {
                 "message": "Passwords must match."
+            })
+        
+        # Cannot use special name
+        if username == "current_user":
+            return render(request, "network/register.html", {
+                "message": "Username not available."
             })
 
         # Attempt to create new user

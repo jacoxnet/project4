@@ -1,6 +1,10 @@
 {% extends "network/layout.html" %}
 {% load static %}
 
+{% block script %}
+    <script src="{% static 'network/page.js' %}"></script>
+{% endblock %}
+
 {% block body %}
     <div class='container w-75'>
         {% if request.user.is_authenticated %}
@@ -30,9 +34,4 @@
         </div>
     </div>
 
-{% endblock %}
-
-
-{% block script %}
-    <script src="{% static 'network/page.js' %}"></script>
 {% endblock %}

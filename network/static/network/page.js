@@ -1,11 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
-
-  
-  
-    // Attach handler to post-tweet button
-    document.querySelector('#post_tweet').addEventListener('click', () => posttweet());
     // By default, load all posts
     loadtweets('alltweets');
+    // Attach handler to post-tweet button
+    document.querySelector('#post_tweet').addEventListener('click', () => posttweet());
+    // Attach handler to following link
+    document.querySelector('#followinglink').addEventListener('click', () => loadtweets('myfollows'));
+    // Attach handler to username link
+    document.querySelector('#usernamelink').addEventListener('click', () => displayprofile('current_user'));
 });
 
 //
@@ -34,6 +35,9 @@ function addstoplural(number, word) {
     }
 }
 
+//
+// display profile of named user
+// 
 async function displayprofile(username) {
     console.log('looking for profile for ' + username);
     const profile_title = document.querySelector('#profile_title');
@@ -41,7 +45,7 @@ async function displayprofile(username) {
     let response = await fetch('displayprofile/' + username)
     if (response.status >= 200 && response.status <= 299) {
         let profile = await response.json();
-        profile_title.textContent = '@' + username;
+        profile_title.textContent = '@' + profile.user;
         const description = profile.description;
         const followcount = profile.follows.length;
         const followcountu = followcount.toString() + ' ' + addstoplural(followcount, 'user');
@@ -49,7 +53,7 @@ async function displayprofile(username) {
         const isfollowedbycountu = isfollowedbycount.toString() + ' ' + addstoplural(isfollowedbycount, 'user');
         profile_content.innerHTML =  '<div>' + description + '</div><div>Following ' + followcountu +
                                      '; followed by ' + isfollowedbycountu + '</div>'
-        loadtweets('mytweets');
+        loadtweets(profile.user);
     }
     else {
         // error on retrieval
@@ -61,15 +65,20 @@ async function displayprofile(username) {
 // load and list of posts
 //
 async function loadtweets(tweetlist) {
-
+    console.log(`trying to display tweetlist ${tweetlist}`);
     // get DOM places to display this content
     const tweets_title = document.querySelector('#tweets_title');
     const tweets_content = document.querySelector('#tweets_content');
-    
     // Set folder title and clear content
-    tweets_title.innerHTML = tweetlist;
+    if (tweetlist == 'alltweets') {
+        tweets_title.innerHTML = 'All posts';    
+    } else if (tweetlist == 'myfollows') {
+        tweets_title.innerHTML = "My followers' posts";    
+    } else {
+        // tweetlist is user's username
+        tweets_title.innerHTML = `@${tweetlist}'s posts`
+    }
     tweets_content.innerHTML = '';
-
     // get and display list results
     response = await fetch('/listtweets/' + tweetlist);
     if (response.status >= 200 && response.status <= 299) {
@@ -103,7 +112,6 @@ async function loadtweets(tweetlist) {
                 card.appendChild(card_body);
                 card.appendChild(card_footer);
                 tweets_content.appendChild(card)
-                
             });
         } else {
             // if no posts were retrieved but not an error
@@ -117,7 +125,7 @@ async function loadtweets(tweetlist) {
 }
 
 //
-// send email
+// post tweet
 //
 async function posttweet() {
     /* retrieve info from DOM fields */
