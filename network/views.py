@@ -81,6 +81,24 @@ def addtweet(request):
     newtweet.save()
     return JsonResponse({"message": "Tweet posted"}, status=201)
 
+@csrf_exempt
+@login_required
+def changetweet(request):
+    # must be a POST request
+    if request.method != "POST":
+        return JsonResponse({"error": "POST request required"}, status=400)
+    data = json.loads(request.body)
+    id = data.get("id")
+    print("changing tweet ", id)
+    body = data.get("body", "")
+    print("new body ", body)
+    changingtweet = Tweet.objects.get(id=id)
+    changingtweet.body = body
+    changingtweet.save()
+    print("about to return: ", changingtweet.serialize())
+    return JsonResponse(changingtweet.serialize(), status=201)
+
+
 #
 # route displayprofile/<profile>
 #   display a user's profile
@@ -101,7 +119,7 @@ def displayprofile(request, username):
         theprofile = Profile.objects.get(user=theuser)
     except Profile.DoesNotExist:
         # create new profile
-        theprofile = Profile(user=theuser, description="This is the profile for " + "@" + theuser.username)
+        theprofile = Profile(user=theuser, description="Hi, I'm " + "@" + theuser.username + "! Welcome to my page.")
         theprofile.save()
     return JsonResponse(
         theprofile.serialize(), status=201

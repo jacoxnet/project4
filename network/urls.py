@@ -11,5 +11,6 @@ urlpatterns = [
     # api routes
     path("addtweet", views.addtweet, name="addtweet"),
     path("listtweets/<str:tweetlist>", views.listtweets, name="listtweets"),
-    path("displayprofile/<str:username>", views.displayprofile, name="displayprofile")
+    path("displayprofile/<str:username>", views.displayprofile, name="displayprofile"),
+    path("changetweet", views.changetweet, name="changetweet")
 ]

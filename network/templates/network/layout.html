@@ -10,14 +10,14 @@
         {% endblock %}
     </head>
     <body>
-        <div class="container">
+        <div class="container" id="toplevel" data-username="{{ request.user.username }}">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <a class="navbar-brand" href="#">Network</a>
           
                 <ul class="navbar-nav mr-auto">
-                    {% if user.is_authenticated %}
+                    {% if request.user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" id="usernamelink" href="#"><strong>{{ user.username }}</strong></a>
+                            <a class="nav-link" id="usernamelink" href="#"><strong>{{ request.user.username }}</strong></a>
                         </li>
                     {% endif %}
                     <li class="nav-item">
