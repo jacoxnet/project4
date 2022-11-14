@@ -55,7 +55,7 @@
                                         {{ tweet.body }}
                                     </div>
                                     {% if tweet.sender == request.user.username %}
-                                        <a id='edit{{ forloop.counter0 }}' href='javascript:void(0)'>Edit your post</a>
+                                        <a href='#' onclick='edittweet({{ forloop.counter0 }}, {{ tweet.id }})'>Edit your post</a>
                                     {% endif %}
                                 </div>
                             </div>

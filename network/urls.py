@@ -12,6 +12,7 @@ urlpatterns = [
     path("profile/<str:username>", views.profile, name="profile"),
     # api routes
     path("addtweet", views.addtweet, name="addtweet"),
+    path("gettweet/<int:tweetid>", views.gettweet, name="gettweet"),
     path("listtweets/<str:tweetlist>", views.listtweets, name="listtweets"),
     path("displayprofile/<str:username>", views.displayprofile, name="displayprofile"),
     path("changetweet", views.changetweet, name="changetweet"),

@@ -144,6 +144,18 @@ def listtweets(request, tweetlist):
     return JsonResponse([tweet.serialize() for tweet in tweets], safe=False)
 
 #
+# route gettweet
+#   get exiting tweet
+#
+@csrf_exempt
+def gettweet(request, tweetid):
+    try:
+        tweet = Tweet.objects.get(id=tweetid)
+    except Tweet.DoesNotExist:
+        return JsonResponse({"error": "Tweet not found"}, status=400)
+    return JsonResponse(tweet.serialize(), status=201)
+
+#
 # route addtweet
 #   add (post) new tweet
 #

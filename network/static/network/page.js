@@ -18,37 +18,49 @@ document.addEventListener('DOMContentLoaded', function() {
 //
 // edittweet - set up to edit an existing tweet
 //
-function edittweet(oldpost, cardnum) {
+async function edittweet(cardnum, tweetid) {
+    console.log(`editing at card ${cardnum} for tweet ${tweetid}`);
+    // find DOM location of old card
     const oldcard = document.querySelector(`#card${cardnum}`);
-    // create textarea to replace card
-    const newform = document.createElement('form');
-    const newtextarea = document.createElement('textarea');
-    newtextarea.setAttribute('class', 'form-control');
-    newtextarea.setAttribute('id', 'confirmedit');
-    newtextarea.textContent = oldpost.body;
-    const newbutton = document.createElement('button');
-    newbutton.setAttribute('type', 'button');
-    newbutton.setAttribute('class', 'btn btn-primary');
-    newbutton.textContent = 'Confirm edit';
-    newbutton.addEventListener('click', () => confirmedit(oldpost, cardnum));
-    const cancelbutton = document.createElement('button');
-    cancelbutton.setAttribute('type', 'button');
-    cancelbutton.setAttribute('class', 'btn btn-secondary');
-    cancelbutton.textContent = 'Cancel';
-    cancelbutton.addEventListener('click', () => redrawpost(oldpost, cardnum));
-    // clear out old card body
-    oldcard.querySelector('.card-body').innerHTML = '';
-    // build up editing box and add to this card
-    newform.appendChild(newtextarea);
-    newform.appendChild(newbutton);
-    newform.appendChild(cancelbutton);
-    oldcard.querySelector('.card-body').appendChild(newform);
+    // get the tweet
+    let response = await fetch('/gettweet/' + tweetid.toString());
+    if (response.status >= 200 && response.status <= 299) {
+        console.log(`tweet ${tweetid} found`);
+        let tweet = await response.json();
+        // create textarea to replace card body
+        const newform = document.createElement('form');
+        const newtextarea = document.createElement('textarea');
+        newtextarea.setAttribute('class', 'form-control');
+        newtextarea.setAttribute('id', 'confirmedit');
+        newtextarea.textContent = tweet.body;
+        const newbutton = document.createElement('button');
+        newbutton.setAttribute('type', 'button');
+        newbutton.setAttribute('class', 'btn btn-primary');
+        newbutton.textContent = 'Confirm edit';
+        newbutton.addEventListener('click', () => confirmedit(cardnum, tweet));
+        const cancelbutton = document.createElement('button');
+        cancelbutton.setAttribute('type', 'button');
+        cancelbutton.setAttribute('class', 'btn btn-secondary');
+        cancelbutton.textContent = 'Cancel';
+        cancelbutton.addEventListener('click', () => redrawpost(cardnum, tweet));
+        // clear out old card body
+        oldcard.querySelector('.card-body').innerHTML = '';
+        // build up editing box and add to this card
+        newform.appendChild(newtextarea);
+        newform.appendChild(newbutton);
+        newform.appendChild(cancelbutton);
+        oldcard.querySelector('.card-body').appendChild(newform);
+        return false;
+    } else {
+        console.log(`tweet ${tweetid} NOT found`);
+        return false;
+    }
 }
 
 //
 // confirmedit - replace body of old tweet 
 //
-async function confirmedit(oldpost, cardnum) {
+async function confirmedit(cardnum, oldpost) {
     console.log(`confirm edit of card ${cardnum}`);
     const oldcard = document.querySelector(`#card${cardnum}`);
     const newbody = document.querySelector('#confirmedit').value;
@@ -79,7 +91,7 @@ async function confirmedit(oldpost, cardnum) {
 //
 // cancel button functionality for editing tweet
 //
-function redrawpost(oldpost, cardnum) {
+function redrawpost(cardnum, oldpost) {
     const oldcard = document.querySelector(`#card${cardnum}`);
     const newcard = makecard(oldpost, cardnum);
     // replace with original card
@@ -120,26 +132,7 @@ function addstoplural(number, word) {
 // 
 async function displayprofile(username) {
     console.log('looking for profile for ' + username);
-    const profile_title = document.querySelector('#profile_title');
-    const profile_content = document.querySelector('#profile_content');
-    let response = await fetch('displayprofile/' + username)
-    if (response.status >= 200 && response.status <= 299) {
-        let profile = await response.json();
-        profile_title.textContent = '@' + profile.user;
-        const description = profile.description;
-        const followcount = profile.follows.length;
-        const followcountu = followcount.toString() + ' ' + addstoplural(followcount, 'user');
-        const isfollowedbycount = profile.isfollowedby.length;
-        const isfollowedbycountu = isfollowedbycount.toString() + ' ' + addstoplural(isfollowedbycount, 'user');
-        profile_content.innerHTML =  '<div>' + description + '</div><div>Following ' + followcountu +
-                                     '; followed by ' + isfollowedbycountu + '</div>'
-        loadtweets(profile.user);
-    }
-    else {
-        // error on retrieval
-       profile_content.innerHTML = '<i>' + 'Error - ' + response.statusText + '</i>';
-    }
-    return false;
+    window.location.href = '/profile/' + username;
 }
 
 
