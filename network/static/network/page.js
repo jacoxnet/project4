@@ -1,12 +1,18 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // By default, load all posts
-    loadtweets('alltweets');
-    // Attach handler to post-tweet button
-    document.querySelector('#post_tweet').addEventListener('click', () => posttweet());
-    // Attach handler to following link
-    document.querySelector('#followinglink').addEventListener('click', () => loadtweets('myfollows'));
-    // Attach handler to username link
-    document.querySelector('#usernamelink').addEventListener('click', () => displayprofile('current_user'));
+
+    // Attach handler to card headers to call profile page
+    // card headers have the usernames (minus @ at start)
+    document.querySelectorAll('.card-header').forEach((element) => {
+        const username = element.textContent.trim().slice(1);
+        element.addEventListener('click', () => displayprofile(username));
+    })
+    
+    
+    // addEventListener('click', () => posttweet());
+    // // Attach handler to following link
+    // document.querySelector('#followinglink').addEventListener('click', () => loadtweets('myfollows'));
+    // // Attach handler to username link
+    // document.querySelector('#usernamelink').addEventListener('click', () => displayprofile('current_user'));
 });
 
 //
