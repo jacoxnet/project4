@@ -29,7 +29,7 @@ function edittweet(oldpost, cardnum) {
     cancelbutton.setAttribute('type', 'button');
     cancelbutton.setAttribute('class', 'btn btn-secondary');
     cancelbutton.textContent = 'Cancel';
-    cancelbutton.addEventListener('click', () => canceledit(oldpost, cardnum));
+    cancelbutton.addEventListener('click', () => redrawpost(oldpost, cardnum));
     // clear out old card body
     oldcard.querySelector('.card-body').innerHTML = '';
     // build up editing box and add to this card
@@ -70,15 +70,36 @@ async function confirmedit(oldpost, cardnum) {
     }
 }
 
-function canceledit(oldpost, cardnum) {
+//
+// cancel button functionality for editing tweet
+//
+function redrawpost(oldpost, cardnum) {
     const oldcard = document.querySelector(`#card${cardnum}`);
     const newcard = makecard(oldpost, cardnum);
     // replace with original card
     oldcard.innerHTML = newcard.innerHTML;
-    // replace event listener which isn't copied with HTML
+    // replace event listeners which isn't copied with HTML
     oldcard.querySelector('a').addEventListener('click', () => edittweet(oldpost, cardnum));
+    oldcard.querySelector('i').addEventListener('click', () => addlike(oldpost, cardnum));
 }
 
+//
+// called if like button clicked
+//
+async function addlike(post, cardnum) {
+    await fetch('/addlike', {
+        method: 'POST',
+        body: JSON.stringify({
+            id: post.id
+        })
+    });
+    const oldcard = document.querySelector(`#card${cardnum}`)
+    oldcard.querySelector('i').classList.add('red');
+}
+
+//
+// helper fuction adds s to plural noun
+//
 function addstoplural(number, word) {
     if (number == 1) {
         return word;
@@ -115,99 +136,6 @@ async function displayprofile(username) {
     return false;
 }
 
-//
-// helper function
-//      make a card from a post
-//      cardnum is a counter for card on page
-//
-function makecard(post, cardnum) {
-    // create the HTML elements of the card 
-    const card = document.createElement('div');
-    card.setAttribute('class', 'card');
-    card.setAttribute('id', 'card' + cardnum.toString())
-    const card_header = document.createElement('div');
-    card_header.setAttribute('class', 'card-header');
-    const card_body = document.createElement('div');
-    card_body.setAttribute('class', 'card-body');
-    const card_title = document.createElement('div');
-    card_title.setAttribute('class', 'card-title');
-    const card_text = document.createElement('div');
-    card_text.setAttribute('class', 'card-text');
-    const card_footer = document.createElement('div');
-    card_footer.setAttribute('class', 'card-footer');
-    // create footer table data
-    const foot_table = document.createElement('table');
-    const foot_tbody = document.createElement('tbody');
-    const foot_row = document.createElement('tr');
-    const foot_data1 = document.createElement('td');
-    const foot_data2 = document.createElement('td');
-    // assign data to elements
-    card_header.textContent = '@' + post.sender;
-    card_text.textContent = post.body;
-    foot_data1.textContent = post.likecount + ' Likes';
-    foot_data2.textContent = post.timestamp
-    // set attributes of card elements
-    foot_table.setAttribute('class', 'table table-sm table-borderless');
-    card_header.addEventListener('click', () => displayprofile(post.sender));
-    foot_data2.setAttribute('id', 'rj');
-    // add edit button if appropriate
-    if (post.sender == document.querySelector('#toplevel').getAttribute('data-username')) {
-        const newbutton = document.createElement('a');
-        const buttontext = document.createElement('div');
-        newbutton.setAttribute('href', 'javascript:void(0)')
-        newbutton.addEventListener('click', () => edittweet(post, cardnum));
-        buttontext.textContent = 'Edit your post';
-        newbutton.appendChild(buttontext);
-        card_text.appendChild(newbutton);
-    }
-    // append the card elements and then return card
-    foot_row.appendChild(foot_data1);
-    foot_row.appendChild(foot_data2);
-    foot_tbody.appendChild(foot_row);
-    foot_table.appendChild(foot_tbody);
-    card_footer.appendChild(foot_table);
-    card_body.appendChild(card_text);
-    card.appendChild(card_header);
-    card.appendChild(card_body);
-    card.appendChild(card_footer);
-    return card;
-}
-// 
-// load list of posts
-//
-async function loadtweets(tweetlist) {
-    console.log(`trying to display tweetlist ${tweetlist}`);
-    // get DOM places to display this content
-    const tweets_title = document.querySelector('#tweets_title');
-    const tweets_content = document.querySelector('#tweets_content');
-    // Set folder title and clear content
-    if (tweetlist == 'alltweets') {
-        tweets_title.innerHTML = 'All posts';    
-    } else if (tweetlist == 'myfollows') {
-        tweets_title.innerHTML = "My followers' posts";    
-    } else {
-        // tweetlist is user's username
-        tweets_title.innerHTML = `@${tweetlist}'s posts`
-    }
-    tweets_content.innerHTML = '';
-    // get and display list results
-    response = await fetch('/listtweets/' + tweetlist);
-    if (response.status >= 200 && response.status <= 299) {
-        let posts = await response.json();
-        if (posts.length > 0) {
-            for (let i = 0; i < posts.length; i++) {
-                tweets_content.appendChild(makecard(posts[i], i));
-            }
-        } else {
-            // if no posts were retrieved but not an error
-            tweets_content.innerHTML = '<i>No posts to display</i>';
-        }
-    }
-    else {
-        // error on retrieval
-       tweets_content.innerHTML = '<i>' + 'Error - ' + response.statusText + '</i>';
-    }
-}
 
 //
 // post tweet

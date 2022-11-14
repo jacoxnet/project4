@@ -19,7 +19,88 @@ from network.models import User, Profile, Tweet
 #   returns all tweets and sends list to template
 #
 def index(request):
-    return render(request, "network/index.html")
+    showprofile = False
+    listname = "All Posts"
+    tweetlist = Tweet.objects.all()
+    if request.user.is_authenticated:
+        showinput = True
+    else:
+        showinput = False
+    tweetlist = tweetlist.order_by("-timestamp").all()
+    context = {
+        "showinput": showinput,
+        "showprofile": showprofile,
+        "listname": listname,
+        "tweetlist": [tweet.serialize() for tweet in tweetlist]
+    }
+    return render(request, "network/index.html", context)
+
+#
+# route /profile/<str:username>
+#
+def profile(request, username):
+    try:
+        theuser = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return render(request, "network/index.html", {
+                "message": "Invalid username."
+            })
+    # get the user's tweets
+    tweetlist = Tweet.objects.filter(sender=theuser)
+    # order tweets in reverse chron order
+    tweetlist = tweetlist.order_by("-timestamp").all()
+    if request.user.is_authenticated:
+        showinput = True
+    else:
+        showinput = False
+    showprofile = True
+    listname = "@" + username + "'s posts"
+    # query for user's profile - create if necessary
+    try: 
+        theprofile = Profile.objects.get(user=theuser)
+    except Profile.DoesNotExist:
+        # create new profile
+        theprofile = Profile(user=theuser, description="Hi, I'm " + "@" + theuser.username + "! Welcome to my page.")
+        theprofile.save()
+    context = {
+        "showinput": showinput,
+        "showprofile": showprofile,
+        "listname": listname,
+        "profile": theprofile.serialize(),
+        "tweetlist": [tweet.serialize() for tweet in tweetlist]
+    }
+    return render(request, "network/index.html", context)
+
+
+# 
+# route /myfollows
+#       show tweets of people the logged-in user follows
+#       
+@login_required
+def myfollows(request):    
+    showinput = True
+    showprofile = False
+    listname = listname = "@" + request.user.username + "'s followers posts"
+    # get current user's profile
+    theprofile = Profile.objects.get(user=request.user)
+    # get queryset with the user's follows
+    thefollows = theprofile.follows.all()
+    # get an iterable with each users tweets
+    theiterable = list(map(lambda a:Tweet.objects.filter(sender=a), thefollows))
+    if len(theiterable) > 0:
+        # union all these tweets together
+        tweets = reduce(lambda a, b: a|b, theiterable)
+    else:
+        # create empty queryset
+        tweets = Tweet.objects.filter(sender=None);
+    tweetlist = tweets.order_by("-timestamp").all()
+    context = {
+        "showinput": showinput,
+        "showprofile": showprofile,
+        "listname": listname,
+        "tweetlist": [tweet.serialize() for tweet in tweetlist]
+    }
+    return render(request, "network/index.html", context)
 
 #
 # route listtweets/tweetlist
@@ -97,6 +178,49 @@ def changetweet(request):
     changingtweet.save()
     print("about to return: ", changingtweet.serialize())
     return JsonResponse(changingtweet.serialize(), status=201)
+
+@csrf_exempt
+@login_required
+def togglelike(request):
+    # must be a POST request
+    if request.method != "POST":
+        return JsonResponse({"error": "POST request required"}, status=400)
+    data = json.loads(request.body)
+    id = data.get("id")
+    print("adding like to tweet ", id)
+    tweet = Tweet.objects.get(id=id)
+    if request.user in tweet.likes.all():
+        print("removing like from tweet ", id)
+        tweet.likes.remove(request.user)
+    else:
+        print("adding like to tweet ", id)
+        tweet.likes.add(request.user)
+    tweet.save()
+    return JsonResponse(tweet.serialize(), status=201)
+
+@csrf_exempt
+@login_required
+def togglefollow(request):
+    # must be a POST request
+    if request.method != "POST":
+        return JsonResponse({"error": "POST request required"}, status=400)
+    data = json.loads(request.body)
+    id = data.get("id")
+    # get my profile
+    profile = Profile.objects.get(user=request.user)
+    # get user data for id passed
+    tofollow = User.objects.get(id=id)
+    # already following?
+    if tofollow in profile.follows:
+        # yes, unfollow
+        print("unfollowing ", tofollow.username)
+        profile.follows.remove(tofollow)
+    else:
+        # no, follow
+        print("following ", tofollow.username)
+        profile.follows.add(tofollow)
+    profile.save()
+    return JsonResponse(profile.serialize(), status=201)
 
 
 #

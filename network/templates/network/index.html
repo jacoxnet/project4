@@ -7,7 +7,7 @@
 
 {% block body %}
     <div class='container w-75'>
-        {% if request.user.is_authenticated %}
+        {% if showinput %}
             <div id="compose-view">
                 <h3>New Post</h3>
                 <span id='mymessages'></span>
@@ -21,16 +21,68 @@
             </div>
         {% endif %}
         
-
-        <div id="profile-view">
-            <h3 id="profile_title"></h3>
-            <div id="profile_content"></div>
-        </div>
-
+        {% if showprofile %}
+            <div id="profile-view">
+                <h3 id="profile_title">
+                    {{ profile.user }}
+                </h3>
+                <div id="profile_content">
+                    <div>
+                        {{ profile.description }}
+                    </div>
+                    <div>
+                        Following {{ profile.follows | length }} user{{ profile.follows|length|pluralize }};
+                        followed by {{ profile.isfollowedby | length }} user{{ profile.isfollowedby|length|pluralize }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
 
         <div id="tweets-view">
-            <h3 id="tweets_title"></h3>
-            <div id="tweets_content"></div>
+            <h3 id="tweets_title">{{ listname }}</h3>
+            <div id="tweets_content">
+                {% if tweetlist|length == 0 %}
+                    <i>No posts to display</i>
+                {% else %}
+                    {% for tweet in tweetlist %}
+                        <div class='card' id='card{{ forloop.counter0 }}'>
+                            <div class='card-header'>
+                                @{{ tweet.sender }}
+                            </div>
+                            <div class='card-body'>
+                                <div class='card-title'>
+                                    <div class='card-text'>
+                                        {{ tweet.body }}
+                                    </div>
+                                    {% if tweet.sender == request.user.username %}
+                                        <a id='edit{{ forloop.counter0 }}' href='javascript:void(0)'>Edit your post</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class='card-footer'>
+                                <table class='table table-sm table-borderless'>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                {{ tweet.likecount }} 
+                                                {% if tweet.likecount == 1 %}
+                                                    Like
+                                                {% else %}
+                                                    Likes
+                                                {% endif %}
+                                                <i id='heart{{ forloop.counter0 }}' class="fa-solid fa-heart"></i>
+                                            </td>
+                                            <td id='rj'>
+                                                {{ tweet.timestamp }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
         </div>
     </div>
 

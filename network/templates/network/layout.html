@@ -8,16 +8,18 @@
         <link href="{% static 'network/styles.css' %}" rel="stylesheet">
         {% block script %}
         {% endblock %}
+        <script src="https://kit.fontawesome.com/4d2b2fa91d.js" crossorigin="anonymous"></script>
+
     </head>
     <body>
-        <div class="container" id="toplevel" data-username="{{ request.user.username }}">
+        <div class="container">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <a class="navbar-brand" href="#">Network</a>
           
                 <ul class="navbar-nav mr-auto">
                     {% if request.user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" id="usernamelink" href="#"><strong>{{ request.user.username }}</strong></a>
+                            <a class="nav-link" id="usernamelink" href="{%  url 'profile/{{ request.user.username }}' }%"><strong>{{ request.user.username }}</strong></a>
                         </li>
                     {% endif %}
                     <li class="nav-item">
@@ -25,7 +27,7 @@
                     </li>
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a id='followinglink' class="nav-link" href="#">Following</a>
+                            <a id='followinglink' class="nav-link" href="{% url 'myfollows' %}">Following</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
