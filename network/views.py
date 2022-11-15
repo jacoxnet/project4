@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from network.models import User, Profile, Tweet
 
-PERPAGE = 4
+PERPAGE = 10
 
 #
 # helper function
