@@ -7,38 +7,63 @@ from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.core.paginator import Paginator
 
 from django.views.decorators.csrf import csrf_exempt
 
 from network.models import User, Profile, Tweet
 
+PERPAGE = 4
 
+#
+# helper function
+#       takes tweetlist, serializes it, then adds
+#       heart color information
+#
+def processtweetlist(request, tweetlist):
+    returnlist = []
+    for tweet in tweetlist:
+        stweet = tweet.serialize()
+        if not request.user.is_authenticated:
+            stweet['redheart'] = False
+        else:
+            stweet['redheart'] = (request.user in tweet.likes.all())
+        returnlist.append(stweet)
+    return returnlist
+    
 
 # 
 # default route - 
 #   returns all tweets and sends list to template
 #
-def index(request):
+def index(request, page=1):
     showprofile = False
     listname = "All Posts"
-    tweetlist = Tweet.objects.all()
+    tweetlist = Tweet.objects.all().order_by("-timestamp")
+    paginator = Paginator(tweetlist, per_page=PERPAGE)
+    page_object = paginator.get_page(page)
     if request.user.is_authenticated:
         showinput = True
     else:
         showinput = False
-    tweetlist = tweetlist.order_by("-timestamp").all()
     context = {
         "showinput": showinput,
         "showprofile": showprofile,
         "listname": listname,
-        "tweetlist": [tweet.serialize() for tweet in tweetlist]
+        "tweetlist": processtweetlist(request, page_object),
+        "page": {
+            "current": page_object.number,
+            "has_next": page_object.has_next(),
+            "has_previous": page_object.has_previous()
+        },
+        "followbutton": "no"
     }
     return render(request, "network/index.html", context)
 
 #
 # route /profile/<str:username>
 #
-def profile(request, username):
+def profile(request, username, page=1):
     try:
         theuser = User.objects.get(username=username)
     except User.DoesNotExist:
@@ -49,6 +74,8 @@ def profile(request, username):
     tweetlist = Tweet.objects.filter(sender=theuser)
     # order tweets in reverse chron order
     tweetlist = tweetlist.order_by("-timestamp").all()
+    paginator = Paginator(tweetlist, per_page=PERPAGE)
+    page_object = paginator.get_page(page)
     if request.user.is_authenticated:
         showinput = True
     else:
@@ -62,14 +89,37 @@ def profile(request, username):
         # create new profile
         theprofile = Profile(user=theuser, description="Hi, I'm " + "@" + theuser.username + "! Welcome to my page.")
         theprofile.save()
+    # set status of follow button
+    if not request.user.is_authenticated:
+        # no follow button if not logged in
+        print("no follow not logged in")
+        followbutton = "no"
+    elif theuser == request.user:
+        # no follow button if we're profiling ourself
+        print("no follow button ", request.user.username, " logged in can't follow yourself")
+        followbutton = "no"
+    elif Profile.objects.get(user=request.user) in theuser.isfollowedby.all():
+        # unfollow button if we already follow
+        print("logged in user ", request.user.username, "already follows ", theuser.username)
+        followbutton = "unfollow"
+    else:
+        # otherwise, we don't yet follow
+        print("logged in user ", request.user.username, "doesn't already follow", theuser.username)
+        followbutton = "follow"
     context = {
         "showinput": showinput,
         "showprofile": showprofile,
         "listname": listname,
         "profile": theprofile.serialize(),
-        "tweetlist": [tweet.serialize() for tweet in tweetlist]
+        "tweetlist": processtweetlist(request, page_object),
+        "page": {
+            "current": page_object.number,
+            "has_next": page_object.has_next(),
+            "has_previous": page_object.has_previous()
+        },
+        "followbutton": followbutton
     }
-    return render(request, "network/index.html", context)
+    return render(request, "network/profile.html", context)
 
 
 # 
@@ -77,7 +127,7 @@ def profile(request, username):
 #       show tweets of people the logged-in user follows
 #       
 @login_required
-def myfollows(request):    
+def myfollows(request, page=1):    
     showinput = True
     showprofile = False
     listname = listname = "@" + request.user.username + "'s followers posts"
@@ -94,57 +144,25 @@ def myfollows(request):
         # create empty queryset
         tweets = Tweet.objects.filter(sender=None);
     tweetlist = tweets.order_by("-timestamp").all()
+    paginator = Paginator(tweetlist, per_page=PERPAGE)
+    page_object = paginator.get_page(page)
     context = {
         "showinput": showinput,
         "showprofile": showprofile,
         "listname": listname,
-        "tweetlist": [tweet.serialize() for tweet in tweetlist]
+        "tweetlist": processtweetlist(request, page_object),
+        "page": {
+            "current": page_object.number,
+            "has_next": page_object.has_next(),
+            "has_previous": page_object.has_previous()
+        },
+        "followbutton": "no"
     }
-    return render(request, "network/index.html", context)
+    return render(request, "network/followers.html", context)
+
 
 #
-# route listtweets/tweetlist
-#      get list of tweets and return 
-#      them 
-#       "alltweets" 
-#       "myfollows" (logged in user's follows)
-#       <username> (tweets of that username)
-#
-def listtweets(request, tweetlist):
-    if tweetlist == "alltweets":
-        tweets = Tweet.objects.all()
-    elif tweetlist == "myfollows":
-        # cannot show follows if not logged in
-        if not request.user.is_authenticated:
-            return JsonResponse({"error": "User not found"}, status=404)
-        theuser = request.user
-        # get that user's profile
-        theprofile = Profile.objects.get(user=theuser)
-        # get queryset with the user's follows
-        thefollows = theprofile.follows.all()
-        # get an iterable with each users tweets
-        theiterable = list(map(lambda a:Tweet.objects.filter(sender=a), thefollows))
-        if len(theiterable) > 0:
-            # union all these tweets together
-            tweets = reduce(lambda a, b: a|b, theiterable)
-        else:
-            # create empty queryset
-            tweets = Tweet.objects.filter(sender=None);
-    else:
-        # treat tweetlist as a username
-        # look up user from username
-        try:
-            theuser = User.objects.get(username=tweetlist)
-        except User.DoesNotExist:
-            return JsonResponse({"error": "User not found"}, status=404)
-        # get the user's tweets
-        tweets = Tweet.objects.filter(sender=theuser)
-    # order tweets in reverse chron order
-    tweets = tweets.order_by("-timestamp").all()
-    return JsonResponse([tweet.serialize() for tweet in tweets], safe=False)
-
-#
-# route gettweet
+# API route gettweet
 #   get exiting tweet
 #
 @csrf_exempt
@@ -156,7 +174,7 @@ def gettweet(request, tweetid):
     return JsonResponse(tweet.serialize(), status=201)
 
 #
-# route addtweet
+# API route addtweet
 #   add (post) new tweet
 #
 @csrf_exempt
@@ -170,10 +188,14 @@ def addtweet(request):
     # load body in request body
     body = data.get("body", "")
     sender = request.user
-    newtweet = Tweet(sender=sender, body=body, likecount=0)
+    newtweet = Tweet(sender=sender, body=body)
     newtweet.save()
     return JsonResponse({"message": "Tweet posted"}, status=201)
 
+#
+# API route changetweet
+#   post request for changing body of a tweet
+#
 @csrf_exempt
 @login_required
 def changetweet(request):
@@ -191,6 +213,10 @@ def changetweet(request):
     print("about to return: ", changingtweet.serialize())
     return JsonResponse(changingtweet.serialize(), status=201)
 
+#
+# API route togglelike
+#       post request for toggling likes
+#
 @csrf_exempt
 @login_required
 def togglelike(request):
@@ -199,7 +225,7 @@ def togglelike(request):
         return JsonResponse({"error": "POST request required"}, status=400)
     data = json.loads(request.body)
     id = data.get("id")
-    print("adding like to tweet ", id)
+    print("toggling like on tweet ", id)
     tweet = Tweet.objects.get(id=id)
     if request.user in tweet.likes.all():
         print("removing like from tweet ", id)
@@ -208,8 +234,13 @@ def togglelike(request):
         print("adding like to tweet ", id)
         tweet.likes.add(request.user)
     tweet.save()
-    return JsonResponse(tweet.serialize(), status=201)
+    returntweet = processtweetlist(request, [tweet])[0]
+    return JsonResponse(returntweet, status=201)
 
+#
+# API route togglefollow
+#       post request for toggling likes
+#
 @csrf_exempt
 @login_required
 def togglefollow(request):
@@ -217,13 +248,13 @@ def togglefollow(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST request required"}, status=400)
     data = json.loads(request.body)
-    id = data.get("id")
+    username = data.get("username")
     # get my profile
     profile = Profile.objects.get(user=request.user)
     # get user data for id passed
-    tofollow = User.objects.get(id=id)
+    tofollow = User.objects.get(username=username)
     # already following?
-    if tofollow in profile.follows:
+    if tofollow in profile.follows.all():
         # yes, unfollow
         print("unfollowing ", tofollow.username)
         profile.follows.remove(tofollow)
@@ -232,35 +263,7 @@ def togglefollow(request):
         print("following ", tofollow.username)
         profile.follows.add(tofollow)
     profile.save()
-    return JsonResponse(profile.serialize(), status=201)
-
-
-#
-# route displayprofile/<profile>
-#   display a user's profile
-#
-def displayprofile(request, username):
-    print('request for profile for ', username)
-    # get current logged in user if special username
-    if username == "current_user":
-        theuser = request.user
-    else:
-        # query for requested user
-        try:
-            theuser = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return JsonResponse({"error": "User not found"}, status=404)
-    # query for user's profile - create if necessary
-    try: 
-        theprofile = Profile.objects.get(user=theuser)
-    except Profile.DoesNotExist:
-        # create new profile
-        theprofile = Profile(user=theuser, description="Hi, I'm " + "@" + theuser.username + "! Welcome to my page.")
-        theprofile.save()
-    return JsonResponse(
-        theprofile.serialize(), status=201
-    )
-    
+    return JsonResponse(profile.serialize(), status=201)    
 
 
 def login_view(request):

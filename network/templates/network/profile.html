@@ -3,12 +3,12 @@
 
 {% block pagination %}
     {% if page.has_previous %}
-        <a type="button" class='btn btn-info' href="{% url 'index' page.current|add:'-1' %}">
+        <a type="button" class='btn btn-info' href="{% url 'profile' profile.user page.current|add:'-1' %}">
             Previous Page
         </a>
     {% endif%}
     {% if page.has_next %}
-        <a type="button" class='btn btn-warning' href="{% url 'index' page.current|add:1 %}">
+        <a type="button" class='btn btn-warning' href="{% url 'profile' profile.user page.current|add:1 %}">
             Next Page
         </a>
     {% endif%}

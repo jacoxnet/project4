@@ -6,8 +6,7 @@
         <title>{% block title %}Social Network{% endblock %}</title>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
         <link href="{% static 'network/styles.css' %}" rel="stylesheet">
-        {% block script %}
-        {% endblock %}
+        <script src="{% static 'network/page.js' %}"></script>
         <script src="https://kit.fontawesome.com/4d2b2fa91d.js" crossorigin="anonymous"></script>
 
     </head>
@@ -15,7 +14,6 @@
         <div class="container">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <a class="navbar-brand" href="#">Network</a>
-          
                 <ul class="navbar-nav mr-auto">
                     {% if request.user.is_authenticated %}
                         <li class="nav-item">
@@ -41,12 +39,112 @@
                         </li>
                     {% endif %}
                 </ul>
-            </div>
-          </nav>
-        
+            </nav>
+        </div>
+
+        {% block body %}
         <div class="body">
-            {% block body %}
+            <div class='container w-75'>
+                {% if showinput %}
+                    <div id="compose-view">
+                        <h3>Send a New Post</h3>
+                        <span id='mymessages'></span>
+                        <form id="compose-form">
+                            <div class="form-group">
+                                <input disabled class="form-control" value="@{{ request.user.username }}">
+                            </div>
+                            <textarea class="form-control" id="compose-body" placeholder="New Post"></textarea>
+                            <button id="post_tweet" type="button" onclick=posttweet(event) class="btn btn-primary">Post Tweet</button>
+                        </form>
+                    </div>
+                {% endif %}
+                
+                {% if showprofile %}
+                    <div id="profile-view">
+                        <h3 id="profile_title">
+                            {{ profile.user }}
+                        </h3>
+                        <div id="profile_content">
+                            <div>
+                                {{ profile.description }}
+                            </div>
+                            <div>
+                                {{ profile.follows | length }} Following; {{ profile.isfollowedby | length }} Follower{{ profile.isfollowedby | length | pluralize }}
+                            </div>
+                            {% if followbutton == "follow" %}
+                                <div>
+                                    <button class="btn btn-primary" onclick='togglefollow("{{ profile.user }}")'>Follow!</button>
+                                </div>
+                            {% elif followbutton == "unfollow" %}
+                                <div>
+                                    <button class="btn btn-primary" onclick='togglefollow("{{ profile.user }}")'>Unfollow!</button>
+                                </div>
+                            {% endif %}  
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div id="tweets-view">
+                    <h3 id="tweets_title">{{ listname }}</h3>
+                    <div id="tweets_content">
+                        {% if tweetlist|length == 0 %}
+                            <i>No posts to display</i>
+                        {% else %}
+                            {% for tweet in tweetlist %}
+                                <div class='card' id='card{{ forloop.counter0 }}'>
+                                    <div class='card-header' onclick='displayprofile("{{tweet.sender}}")'>
+                                        @{{ tweet.sender }}
+                                    </div>
+                                    <div id='cardbody{{ forloop.counter0 }}' class='card-body'>
+                                        <div class='card-text'>
+                                            {{ tweet.body }}
+                                        </div>
+                                        <div class='card-text'>
+                                            {% if tweet.sender == request.user.username %}
+                                                <a href='javascript:void(0)' onclick='edittweet({{ forloop.counter0 }})'>Edit your post</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div id='bodyinput{{ forloop.counter0 }}' class='card-body' style="display:none;">
+                                        <form>
+                                            <textarea id='confirmedit{{ forloop.counter0 }}' class='form-control'></textarea>
+                                            <button class='btn btn-primary' onclick='confirmedit(event, {{ forloop.counter0 }}, {{ tweet.id }})'>Confirm edit</button>
+                                            <button class='btn btn-secondary' onclick='canceledit(event, {{ forloop.counter0 }}, {{ tweet.id }})'>Cancel</button>
+                                        </form>
+                                    </div>
+                                    <div class='card-footer'>
+                                        <table class='table table-sm table-borderless'>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <i id='heart{{ forloop.counter0 }}' onclick='togglelike(event, {{ forloop.counter0 }}, {{ tweet.id }})' 
+                                                            class="fa-solid fa-heart"
+                                                            {% if tweet.redheart %}
+                                                                name="red"
+                                                            {% else %}
+                                                                name="black"
+                                                            {% endif %}
+                                                        >&nbsp{{ tweet.likecount }}</i>
+                                                    </td>
+                                                    <td id='rj'>
+                                                        {{ tweet.timestamp }}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
             {% endblock %}
+            <div class='container text-center'>
+                {% block pagination %}
+                {% endblock %}
+            </div>
+        
         </div>
     </body>
 </html>
