@@ -38,3 +38,9 @@ i[name='red'] {
 a[type='button'] {
     margin:20px;
 }
+
+img {
+    width: 100%;
+    max-width: 30px;
+    margin: 10px;
+}
